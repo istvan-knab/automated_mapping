@@ -5,7 +5,7 @@ This project is made for the Mechatronics of Mobile Machines course of Budapest 
 
 ## Collaborators
 
-| Név           | Neptun kód    |
+| Name          | Neptun        |
 | ------------- | ------------- |
 | Buzás Bence   | RVI37X        |
 | Knáb István Gellért  | BWKUGQ |
