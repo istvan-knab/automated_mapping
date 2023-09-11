@@ -5,11 +5,12 @@ This project is made for the Mechatronics of Mobile Machines course of Budapest 
 
 ## Collaborators
 
-| Name          | Neptun        |
-| ------------- | ------------- |
-| Buzás Bence   | RVI37X        |
-| Knáb István Gellért  | BWKUGQ |
-| Pelenczei Bálint   | C4QFEY   |
+| Name          | Neptun        |Status|
+| ------------- | ------------- |------------- |
+| Buzás Bence   | RVI37X        |Collaborator|
+| Knáb István Gellért  | BWKUGQ |Collaborator|
+| Pelenczei Bálint   | C4QFEY   |Collaborator|
+| Csuzdi Domonkos   |    |Consulent|
 
 ## Slam
 
