@@ -18,3 +18,5 @@ wsl plug-in in windows on Ubuntu 20.04.
 ## Slam
 
 <img align="center" width="800" height="516" src="https://msadowski.github.io/images/slam_toolbox_odom.gif">
+
+## Route planning
