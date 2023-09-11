@@ -5,6 +5,11 @@ This project is made for the Mechatronics of Mobile Machines course of Budapest 
 
 ## Collaborators
 
+| Név           | Neptun kód    |
+| ------------- | ------------- |
+| Buzás Bence   | RVI37X        |
+| Knáb István Gellért  | BWKUGQ |
+| Pelenczei Bálint   | C4QFEY   |
 
 ## Slam
 
