@@ -16,7 +16,7 @@ wsl plug-in in windows on Ubuntu 20.04.
 | Pelenczei Bálint   | C4QFEY   |Collaborator|
 | Csuzdi Domonkos   |    |Consulent|
 
-## Slam
+## Mapping
 
 <img align="center" width="800" height="516" src="https://msadowski.github.io/images/slam_toolbox_odom.gif">
 
