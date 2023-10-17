@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<launch>
+
+	<node name="subscriber_name" pkg="basic_ros_nodes" type="subscriber.py" />
+	<node name="publisher_name" pkg="basic_ros_nodes" type="publisher.py" />
+
+</launch>
