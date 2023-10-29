@@ -21,5 +21,3 @@ wsl plug-in in windows on Ubuntu 20.04.
 
 ## Route planning
 
-
-Test ssh key
