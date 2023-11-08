@@ -20,7 +20,7 @@
 
   <node name="transform_map_odom" pkg="tf2_ros" type="static_transform_publisher" args="0.0 0.0 0.0 0.0 0.0 0.0 map odom"/>
 
-<!-- Gazebo start -->
+<!-- Starting Gazebo world to do simulations -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_stage_4.world"/>
     <arg name="paused" value="false"/>
@@ -29,10 +29,10 @@
     <arg name="headless" value="false"/>
     <arg name="debug" value="false"/>
   </include>
-<!-- Robot spawn -->
+<!-- Spawning the robot  -->
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
   
-<!-- rviz -->
+<!-- rOpening Rviz for visual feedback of slam -->
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_file)"/>
 
 <!-- Gmapping -->
@@ -43,9 +43,4 @@
     <rosparam command="load" file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
   </node>
   
-<!-- teleop_key -->
-<!-- roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch -->
-
-<!-- Mapsaver -->
-<!-- rosrun map_server map_saver -f ~/map -->
 </launch>
