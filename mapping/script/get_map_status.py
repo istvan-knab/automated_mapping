@@ -14,7 +14,8 @@ class LaserRead:
         
 
     def scan_callback(self, scan_in : LaserScan):
-        rospy.loginfo("Hello, Lidar is active")
+        
+    
 
 if __name__ == '__main__':
     rospy.init_node("lidar_read")
