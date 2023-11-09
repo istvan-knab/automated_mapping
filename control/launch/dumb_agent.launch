@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <node pkg="control" type="random_exploration.py" name="myagent" />
+  
+</launch>
