@@ -4,7 +4,7 @@ import rospy
 import actionlib
 from actionlib_msgs.msg import SimpleClientGoalState
 from geometry_msgs.msg import Point
-from move_base_msgs.msg import MoveBaseGoal, MoveBaseResult
+from move_base_msgs.msg import MoveBaseGoal, MoveBaseResult, MoveBaseAction
 from tf import TransformListener
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
@@ -13,12 +13,14 @@ from nav_msgs.msg import Odometry
 from frontier_exploration.srv import GetNextFrontier, GetNextFrontierRequest
 from frontier_exploration.msg import Frontier
 
+from automated_mapping.control.script.frontier_search import FrontierSearch
+
 
 class Explore:
     def __init__(self):
         self.private_nh = rospy.get_param("~")
         self.tf_listener = TransformListener(rospy.Duration(10.0))
-        self.costmap_client = CostmapClient(self.private_nh)
+        self.costmap_client = CostmapClient(self.tf_listener)
         self.move_base_client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         self.prev_distance = 0
         self.last_markers_count = 0
@@ -120,7 +122,7 @@ class Explore:
         self.last_markers_count = current_markers_count
         self.marker_array_publisher.publish(markers_msg)
 
-    def make_plan(self, event):
+    def make_plan(self):
         pose = self.costmap_client.get_robot_pose()
         frontiers = self.search.search_from(pose.position)
         rospy.logdebug("Found %d frontiers", len(frontiers))
