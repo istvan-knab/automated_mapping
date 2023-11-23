@@ -257,10 +257,20 @@ class WaypointFollowerTest():
         self.action_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.initial_pose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=10)
         self.goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
+        self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.costmapCallback)
 
         self.costmap = None
 
         rospy.loginfo('Running Waypoint Test')
+
+    def costmapCallback(self, msg):
+        self.costmap = OccupancyGrid2d(msg)
+
+        unknowns = 0
+        for x in range(0, self.costmap.getSizeX()):
+            for y in range(0, self.costmap.getSizeY()):
+                if self.costmap.getCost(x, y) == 255:
+                    unknowns = unknowns + 1
 
     def moveToFrontiers(self):
         frontiers = getFrontier(self.currentPose, self.costmap)
