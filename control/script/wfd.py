@@ -290,10 +290,11 @@ class WaypointFollowerTest():
         rospy.loginfo(f'World points {location}')
         self.setWaypoints(location)
 
-        """
+        
         goal = MoveBaseGoal()
         goal.target_pose.header = Header()
         goal.target_pose.header.frame_id = 'map'
+        goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose.position.x = location[0][0]
         goal.target_pose.pose.position.y = location[0][1]
         goal.target_pose.pose.orientation.w = 1.0
@@ -309,9 +310,9 @@ class WaypointFollowerTest():
         goal.pose.position.x = location[0][0]
         goal.pose.position.y = location[0][1]
         goal.pose.orientation.w = 1.0
-        self.goal_pub.publish()
-        rospy.sleep()
-
+        self.goal_pub.publish(goal)
+        rospy.sleep(1)
+        """
         self.moveToFrontiers()
 
     def setInitialPose(self, pose):
