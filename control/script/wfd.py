@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import time
@@ -377,12 +377,7 @@ def main():
     test.info_msg('Setting initial pose')
     test.setInitialPose(starting_pose)
     test.info_msg('Waiting for amcl_pose to be received')
-    rospy.spin_once()  # wait for poseCallback
-
-    while test.costmap is None:
-        test.info_msg('Getting initial map')
-        rospy.spin_once()
-
+    
     test.moveToFrontiers()
 
     rospy.spin()
