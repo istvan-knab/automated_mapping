@@ -1,202 +1,76 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
+from nav_msgs.msg import OccupancyGrid
+from geometry_msgs.msg import PointStamped, PoseStamped
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
-from actionlib_msgs.msg import SimpleClientGoalState
-from geometry_msgs.msg import Point
-from move_base_msgs.msg import MoveBaseGoal, MoveBaseResult, MoveBaseAction
-from tf import TransformListener
-from std_msgs.msg import ColorRGBA
-from visualization_msgs.msg import Marker, MarkerArray
-from std_srvs.srv import Empty
-from nav_msgs.msg import Odometry
-from frontier_exploration.srv import GetNextFrontier, GetNextFrontierRequest
-from frontier_exploration.msg import Frontier
+import math
 
-from automated_mapping.control.script.frontier_search import FrontierSearch
-
-
-class Explore:
+class FrontierExplorer:
     def __init__(self):
-        self.private_nh = rospy.get_param("~")
-        self.tf_listener = TransformListener(rospy.Duration(10.0))
-        self.costmap_client = CostmapClient(self.tf_listener)
-        self.move_base_client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        self.prev_distance = 0
-        self.last_markers_count = 0
+        rospy.init_node('frontier_explorer', anonymous=True)
 
-        self.planner_frequency = 1.0
-        self.progress_timeout = rospy.Duration(30.0)
-        self.visualize = False
-        self.potential_scale = 1e-3
-        self.orientation_scale = 0.0
-        self.gain_scale = 1.0
-        self.min_frontier_size = 0.5
+        # Subscribe to the map topic to get occupancy grid information
+        self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
 
-        self.search = FrontierSearch(self.costmap_client.get_costmap(),
-                                     self.potential_scale, self.gain_scale,
-                                     self.min_frontier_size)
+        # Initialize a simple goal publisher for testing
+        self.goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 
-        if self.visualize:
-            self.marker_array_publisher = rospy.Publisher("frontiers", MarkerArray, queue_size=10)
-
-        rospy.loginfo("Waiting to connect to move_base server")
+        # Initialize a simple action client for MoveBase
+        self.move_base_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.move_base_client.wait_for_server()
-        rospy.loginfo("Connected to move_base server")
 
-        self.exploring_timer = rospy.Timer(rospy.Duration(1.0 / self.planner_frequency),
-                                           self.make_plan)
+        # Initialize the occupancy grid
+        self.occupancy_grid = None
 
-    def visualize_frontiers(self, frontiers):
-        blue = ColorRGBA()
-        blue.r = 0
-        blue.g = 0
-        blue.b = 1.0
-        blue.a = 1.0
-        red = ColorRGBA()
-        red.r = 1.0
-        red.g = 0
-        red.b = 0
-        red.a = 1.0
-        green = ColorRGBA()
-        green.r = 0
-        green.g = 1.0
-        green.b = 0
-        green.a = 1.0
+    def map_callback(self, msg):
+        self.occupancy_grid = msg
 
-        rospy.logdebug("Visualizing %d frontiers", len(frontiers))
-        markers_msg = MarkerArray()
-        markers = markers_msg.markers
-        m = Marker()
-
-        m.header.frame_id = self.costmap_client.get_global_frame_id()
-        m.header.stamp = rospy.Time.now()
-        m.ns = "frontiers"
-        m.scale.x = 1.0
-        m.scale.y = 1.0
-        m.scale.z = 1.0
-        m.color.r = 0
-        m.color.g = 0
-        m.color.b = 255
-        m.color.a = 255
-        m.lifetime = rospy.Duration(0)
-        m.frame_locked = True
-
-        min_cost = frontiers[0].cost if frontiers else 0.0
-
-        m.action = Marker.ADD
-        id = 0
-        for frontier in frontiers:
-            m.type = Marker.POINTS
-            m.id = id
-            m.pose.position = Point()
-            m.scale.x = 0.1
-            m.scale.y = 0.1
-            m.scale.z = 0.1
-            m.points = frontier.points
-            if self.goal_on_blacklist(frontier.centroid):
-                m.color = red
-            else:
-                m.color = blue
-            markers.append(m)
-            id += 1
-            m.type = Marker.SPHERE
-            m.id = id
-            m.pose.position = frontier.initial
-            scale = min(abs(min_cost * 0.4 / frontier.cost), 0.5)
-            m.scale.x = scale
-            m.scale.y = scale
-            m.scale.z = scale
-            m.points = []
-            m.color = green
-            markers.append(m)
-            id += 1
-
-        current_markers_count = len(markers)
-
-        m.action = Marker.DELETE
-        for i in range(id, self.last_markers_count):
-            m.id = i
-            markers.append(m)
-
-        self.last_markers_count = current_markers_count
-        self.marker_array_publisher.publish(markers_msg)
-
-    def make_plan(self):
-        pose = self.costmap_client.get_robot_pose()
-        frontiers = self.search.search_from(pose.position)
-        rospy.logdebug("Found %d frontiers", len(frontiers))
-
-        if not frontiers:
-            self.stop()
+    def explore_frontier(self):
+        # Check if the occupancy grid is available
+        if self.occupancy_grid is None:
+            rospy.logwarn("Occupancy grid not available yet.")
             return
 
-        if self.visualize:
-            self.visualize_frontiers(frontiers)
+        # Assume that the origin of the map is at (0, 0)
+        origin_x = self.occupancy_grid.info.origin.position.x
+        origin_y = self.occupancy_grid.info.origin.position.y
 
-        frontier = next((f for f in frontiers if not self.goal_on_blacklist(f.centroid)), None)
-        if not frontier:
-            self.stop()
-            return
+        # Iterate through the occupancy grid to find frontiers
+        for i in range(len(self.occupancy_grid.data)):
+            if self.occupancy_grid.data[i] == 0:  # Unexplored cell (0)
+                # Convert the 1D index to 2D coordinates
+                x = i % self.occupancy_grid.info.width
+                y = i // self.occupancy_grid.info.width
 
-        target_position = frontier.centroid
+                # Convert map coordinates to global coordinates
+                global_x = origin_x + x * self.occupancy_grid.info.resolution
+                global_y = origin_y + y * self.occupancy_grid.info.resolution
 
-        same_goal = self.prev_goal == target_position
-        self.prev_goal = target_position
-        if not same_goal or self.prev_distance > frontier.min_distance:
-            self.last_progress = rospy.Time.now()
-            self.prev_distance = frontier.min_distance
+                # Publish a simple goal for testing (you may replace this with your exploration logic)
+                self.publish_goal(global_x, global_y)
 
-        if rospy.Time.now() - self.last_progress > self.progress_timeout:
-            self.frontier_blacklist.append(target_position)
-            rospy.logdebug("Adding current goal to blacklist")
-            self.make_plan()
-            return
+    def publish_goal(self, x, y):
+        goal = PoseStamped()
+        goal.header.frame_id = 'map'
+        goal.header.stamp = rospy.Time.now()
+        goal.pose.position.x = x
+        goal.pose.position.y = y
+        goal.pose.orientation.w = 1.0
 
-        if same_goal:
-            return
+        self.goal_pub.publish(goal)
 
-        goal = MoveBaseGoal()
-        goal.target_pose.pose.position = target_position
-        goal.target_pose.pose.orientation.w = 1.0
-        goal.target_pose.header.frame_id = self.costmap_client.get_global_frame_id()
-        goal.target_pose.header.stamp = rospy.Time.now()
-        self.move_base_client.send_goal(goal,
-                                        done_cb=lambda status, result: self.reached_goal(status, result, target_position))
+    def run(self):
+        rate = rospy.Rate(1)  # 1 Hz
 
-    def goal_on_blacklist(self, goal):
-        tolerance = 5
-        costmap_2d = self.costmap_client.get_costmap()
-        for frontier_goal in self.frontier_blacklist:
-            x_diff = abs(goal.x - frontier_goal.x)
-            y_diff = abs(goal.y - frontier_goal.y)
+        while not rospy.is_shutdown():
+            self.explore_frontier()
+            rate.sleep()
 
-            if x_diff < tolerance * costmap_2d.get_resolution() and \
-                    y_diff < tolerance * costmap_2d.get_resolution():
-                return True
-        return False
-
-    def reached_goal(self, status, result, frontier_goal):
-        rospy.logdebug("Reached goal with status: %s", status)
-        if status == SimpleClientGoalState.ABORTED:
-            self.frontier_blacklist.append(frontier_goal)
-            rospy.logdebug("Adding current goal to blacklist")
-
-        rospy.Timer(rospy.Duration(0), lambda event: self.make_plan(), True)
-
-    def start(self):
-        self.exploring_timer.start()
-
-    def stop(self):
-        self.move_base_client.cancel_all_goals()
-        self.exploring_timer.shutdown()
-        rospy.loginfo("Exploration stopped.")
-
-
-if __name__ == "__main__":
-    rospy.init_node("explore")
-
-    explore = Explore()
-    explore.start()
-
-    rospy.spin()
+if __name__ == '__main__':
+    try:
+        frontier_explorer = FrontierExplorer()
+        frontier_explorer.run()
+    except rospy.ROSInterruptException:
+        pass
