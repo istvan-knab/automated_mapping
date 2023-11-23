@@ -20,9 +20,15 @@ class FrontierExplorer:
         # Initialize a simple action client for MoveBase
         self.move_base_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.move_base_client.wait_for_server()
+        self.timer_goal = rospy.Timer(rospy.Duration(1.0), self.timer_callback)
 
         # Initialize the occupancy grid
         self.occupancy_grid = None
+        self.global_x = 0.0
+        self.global_y = 0.0
+
+    def timer_callback(self, event):
+        self.publish_goal(self.global_x, self.global_y)
 
     def map_callback(self, msg):
         self.occupancy_grid = msg
@@ -45,11 +51,11 @@ class FrontierExplorer:
                 y = i // self.occupancy_grid.info.width
 
                 # Convert map coordinates to global coordinates
-                global_x = origin_x + x * self.occupancy_grid.info.resolution
-                global_y = origin_y + y * self.occupancy_grid.info.resolution
+                self.global_x = origin_x + x * self.occupancy_grid.info.resolution
+                self.global_y = origin_y + y * self.occupancy_grid.info.resolution
 
                 # Publish a simple goal for testing (you may replace this with your exploration logic)
-                self.publish_goal(global_x, global_y)
+                
 
     def publish_goal(self, x, y):
         goal = PoseStamped()
@@ -62,7 +68,7 @@ class FrontierExplorer:
         self.goal_pub.publish(goal)
 
     def run(self):
-        rate = rospy.Rate(1)  # 1 Hz
+        rate = rospy.Rate(10)  # 1 Hz
 
         while not rospy.is_shutdown():
             self.explore_frontier()
