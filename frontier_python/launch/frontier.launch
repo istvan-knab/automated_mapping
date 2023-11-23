@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <node pkg="frontier_python" type="navigate.py" name="frontier_agent_python" />
+  
+</launch>
